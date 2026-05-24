@@ -7044,8 +7044,9 @@ Logging:
 
             let winText = reward.display;
             let winColor = '#4ade80';
+            let winSub = '';
             if (reward.type === 'nc') winColor = '#4ade80';
-            else if (reward.type === 'neural') winColor = '#e574e4';
+            else if (reward.type === 'neural') { winColor = '#e574e4'; winText = 'NeuralClient'; winSub = `236-271 ${reward.days}d`; }
             else if (reward.type === 'nothing') winColor = '#94a3b8';
 
             // Random total squares between 35 and 60
@@ -7056,7 +7057,8 @@ Logging:
             let html = '';
             for (let i = 0; i < totalSquares; i++) {
                 if (i === winIndex) {
-                    html += `<div class="roulette-square win-square" style="background:#3a3d5f;"><div class="square-value" style="color:${winColor};">${winText}</div></div>`;
+                    const winSubHtml = winSub ? `<div class="square-currency" style="color:${winColor};">${winSub}</div>` : '';
+                    html += `<div class="roulette-square win-square" style="background:#3a3d5f;"><div class="square-value" style="color:${winColor};">${winText}</div>${winSubHtml}</div>`;
                 } else {
                     const v = prizeToSquare(weightedRandom(prizes));
                     const subHtml = v.sub ? `<div class="square-currency" style="color:${v.color};">${v.sub}</div>` : '';
@@ -7100,6 +7102,10 @@ Logging:
                 winSquare.style.background = 'rgba(229,148,228,0.15)';
                 updateBalance(newBalance);
                 buttons.forEach(btn => btn.disabled = false);
+
+                if (reward.type === 'neural') {
+                    showModal(`Вы выиграли NeuralClient ${reward.days}д — подписка автоматически продлена в профиле`, 'Подписка!');
+                }
             }, duration + 200);
         }
 
