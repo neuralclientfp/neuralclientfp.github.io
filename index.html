@@ -2614,6 +2614,15 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+        .price-card .badge-better {
+            position: absolute; top: 16px; right: -38px;
+            background: rgba(20, 18, 28, 0.97);
+            color: #e8d0ff; font-size: 9px; font-weight: 800; letter-spacing: 1px;
+            padding: 5px 38px 6px; transform: rotate(45deg);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
         
         .price-card:hover {
             transform: translateY(-8px);
@@ -3322,6 +3331,7 @@
                 <div class="security-tags">
                     <span class="security-tag">OldRust</span>
                     <span class="security-tag">CompanyRust</span>
+                    <span class="security-tag">MagixRust</span>
                     <span class="security-tag">MyRust</span>
                 </div>
                 <div class="security-tags" style="margin-top: 10px;">
@@ -3605,24 +3615,25 @@
             </div>
             <div class="price-grid">
                 <div class="price-card reveal reveal-delay-1">
-                    <div class="duration">3 Дня</div>
-                    <div class="price">260<span>₽</span></div>
-                    <a href="#" onclick="openBuyMethod(event, '3 Дня', 260)" class="price-btn"><span>Купить</span></a>
-                </div>
-                <div class="price-card reveal reveal-delay-2">
                     <div class="duration">7 Дней</div>
                     <div class="price">480<span>₽</span></div>
                     <a href="#" onclick="openBuyMethod(event, '7 Дней', 480)" class="price-btn"><span>Купить</span></a>
                 </div>
-                <div class="price-card reveal reveal-delay-3">
+                <div class="price-card reveal reveal-delay-2">
+                    <div class="badge-better">выгодней</div>
                     <div class="duration">30 Дней</div>
                     <div class="price">1000<span>₽</span></div>
                     <a href="#" onclick="openBuyMethod(event, '30 Дней', 1000)" class="price-btn"><span>Купить</span></a>
                 </div>
-                <div class="price-card reveal reveal-delay-4">
+                <div class="price-card reveal reveal-delay-3">
                     <div class="duration">90 Дней</div>
                     <div class="price">2500<span>₽</span></div>
                     <a href="#" onclick="openBuyMethod(event, '90 Дней', 2500)" class="price-btn"><span>Купить</span></a>
+                </div>
+                <div class="price-card reveal reveal-delay-4">
+                    <div class="duration">НАВСЕГДА</div>
+                    <div class="price">8000<span>₽</span></div>
+                    <a href="#" onclick="openBuyMethod(event, 'НАВСЕГДА', 8000)" class="price-btn"><span>Купить</span></a>
                 </div>
             </div>
         </section>
@@ -3938,66 +3949,54 @@
 
                 panel.style.transition = 'transform 0.1s ease-out, border 0.4s ease';
                 panel.style.transformStyle = 'preserve-3d';
+                panel.style.willChange = 'transform';
+
+                let rafId = null;
+                let pendingX = 0;
+                let pendingY = 0;
+                let cachedRect = null;
+
+                const isProfile = panelSelector === '.profile-card';
+                const isDownload = panelSelector === '.loader-fp-panel';
+                const isChangelog = panelSelector === '.changelog-console';
+                const isRoulette = panelSelector === '.cases-grid';
+                const divisor = isProfile ? 100 : isDownload || isChangelog || isRoulette ? 70 : 35;
+
+                function applyTransform() {
+                    rafId = null;
+                    const cx = cachedRect.width / 2;
+                    const cy = cachedRect.height / 2;
+                    const rotateX = (cy - pendingY) / divisor;
+                    const rotateY = (pendingX - cx) / divisor;
+                    panel.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                }
 
                 container.addEventListener('mousemove', (e) => {
-                    const rect = panel.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    
-                    // Use weaker effect for profile card, download panel, changelog console and roulette card
-                    const isProfile = panelSelector === '.profile-card';
-                    const isDownload = panelSelector === '.loader-fp-panel';
-                    const isChangelog = panelSelector === '.changelog-console';
-                    const isRoulette = panelSelector === '.cases-grid'; // Changed from .roulette-main-card
-                    let divisor = 35; // Default for hero panels
-                    if (isProfile) divisor = 100; // Weaker for profile
-                    if (isDownload) divisor = 70; // Weaker for download panel
-                    if (isChangelog) divisor = 70; // Weaker for changelog console
-                    if (isRoulette) divisor = 70; // Weaker for roulette card
-                    const rotateX = (centerY - y) / divisor;
-                    const rotateY = (x - centerX) / divisor;
-                    
-                    panel.style.setProperty('transform', `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`, 'important');
+                    pendingX = e.clientX - cachedRect.left;
+                    pendingY = e.clientY - cachedRect.top;
+                    if (!rafId) rafId = requestAnimationFrame(applyTransform);
                 });
                 
                 container.addEventListener('mouseleave', () => {
-                    panel.style.setProperty('transform', 'perspective(1000px) rotateX(0) rotateY(0)', 'important');
+                    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+                    panel.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
                     if (starsCanvas) starsCanvas.classList.remove('blurred');
-                    // Remove blur effect from hero-panel
-                    if (panel.classList.contains('hero-panel')) {
-                        panel.classList.remove('hovered');
-                    }
-                    // Remove blur effect from changelog console
-                    if (panel.classList.contains('changelog-console')) {
-                        panel.classList.remove('hovered');
-                    }
-                    // Remove blur effect from roulette card
-                    if (panel.classList.contains('roulette-main-card')) {
-                        panel.classList.remove('hovered');
-                    }
+                    ['hero-panel', 'changelog-console', 'roulette-main-card'].forEach(cls => {
+                        if (panel.classList.contains(cls)) panel.classList.remove('hovered');
+                    });
                 });
 
-                container.addEventListener('mouseenter', () => {
+                container.addEventListener('mouseenter', (e) => {
+                    cachedRect = panel.getBoundingClientRect();
+                    pendingX = e.clientX - cachedRect.left;
+                    pendingY = e.clientY - cachedRect.top;
                     if (starsCanvas) {
-                        // Ensure only one blur exists
                         starsCanvas.classList.remove('blurred');
                         starsCanvas.classList.add('blurred');
                     }
-                    // Add blur effect to hero-panel only
-                    if (panel.classList.contains('hero-panel')) {
-                        panel.classList.add('hovered');
-                    }
-                    // Add blur effect to changelog console
-                    if (panel.classList.contains('changelog-console')) {
-                        panel.classList.add('hovered');
-                    }
-                    // Add blur effect to roulette card
-                    if (panel.classList.contains('roulette-main-card')) {
-                        panel.classList.add('hovered');
-                    }
+                    ['hero-panel', 'changelog-console', 'roulette-main-card'].forEach(cls => {
+                        if (panel.classList.contains(cls)) panel.classList.add('hovered');
+                    });
                 });
             });
         }
@@ -4013,24 +4012,37 @@
                 
                 caseCard.style.transition = 'transform 0.1s ease-out';
                 caseCard.style.transformStyle = 'preserve-3d';
+                caseCard.style.willChange = 'transform';
+
+                let rafId = null;
+                let pendingX = 0;
+                let pendingY = 0;
+                let cachedRect = null;
+
+                function applyTransform() {
+                    rafId = null;
+                    const cx = cachedRect.width / 2;
+                    const cy = cachedRect.height / 2;
+                    const rotateX = (cy - pendingY) / 70;
+                    const rotateY = (pendingX - cx) / 70;
+                    caseCard.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                }
                 
                 caseCard.addEventListener('mousemove', (e) => {
-                    const rect = caseCard.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    
-                    const divisor = 70; // Weaker effect for case cards
-                    const rotateX = (centerY - y) / divisor;
-                    const rotateY = (x - centerX) / divisor;
-                    
-                    caseCard.style.setProperty('transform', `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`, 'important');
+                    pendingX = e.clientX - cachedRect.left;
+                    pendingY = e.clientY - cachedRect.top;
+                    if (!rafId) rafId = requestAnimationFrame(applyTransform);
                 });
                 
                 caseCard.addEventListener('mouseleave', () => {
-                    caseCard.style.setProperty('transform', 'perspective(1000px) rotateX(0) rotateY(0)', 'important');
+                    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+                    caseCard.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+                });
+
+                caseCard.addEventListener('mouseenter', (e) => {
+                    cachedRect = caseCard.getBoundingClientRect();
+                    pendingX = e.clientX - cachedRect.left;
+                    pendingY = e.clientY - cachedRect.top;
                 });
             });
         }
@@ -5658,8 +5670,25 @@ Logging:
                 return await response.json();
             },
             
+            async _fetchWithRetry(url, options, retries = 1, delay = 1000) {
+                for (let attempt = 0; attempt <= retries; attempt++) {
+                    try {
+                        const response = await fetch(url, options);
+                        return response;
+                    } catch (err) {
+                        console.error(`[API] Fetch error (attempt ${attempt+1}/${retries+1}):`, err.message);
+                        if (attempt < retries) {
+                            await new Promise(r => setTimeout(r, delay));
+                            delay *= 2;
+                        } else {
+                            throw err;
+                        }
+                    }
+                }
+            },
+
             async sendLoginCode(username, password) {
-                const response = await fetch(`${this.baseUrl}/send-login-code`, {
+                const response = await this._fetchWithRetry(`${this.baseUrl}/send-login-code`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -5679,7 +5708,7 @@ Logging:
             },
             
             async webLogin(username, password, code) {
-                const response = await fetch(`${this.baseUrl}/web/login`, {
+                const response = await this._fetchWithRetry(`${this.baseUrl}/web/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
